@@ -6,23 +6,29 @@
 
 
 **License:** Apache 2.0
-**Status:** v1.0.0 - first public release.
 
 Flask framework adapter for [z4j](https://z4j.com). Flask-extension
 shape - one `Z4J(app)` call and the agent boots on the first request.
 
 ## Install
 
-```bash
-pip install z4j-flask z4j-celery z4j-celerybeat
-```
-
-Pick the engine adapter(s) that match your stack:
+Pick your task engine and install with the matching extra. Each extra
+pulls the engine adapter AND its companion scheduler in one shot, so
+a fresh install never needs a second command.
 
 ```bash
-pip install z4j-flask z4j-rq z4j-rqscheduler
-pip install z4j-flask z4j-dramatiq z4j-apscheduler
+pip install z4j-flask[celery]       # Celery + celery-beat
+pip install z4j-flask[rq]           # RQ + rq-scheduler
+pip install z4j-flask[dramatiq]     # Dramatiq + APScheduler
+pip install z4j-flask[huey]         # Huey + huey-periodic
+pip install z4j-flask[arq]          # arq + arq-cron
+pip install z4j-flask[taskiq]       # TaskIQ + taskiq-scheduler
+pip install z4j-flask[all]          # every engine (CI / kitchen sink)
 ```
+
+`pip install z4j-flask` (no extra) installs only the framework adapter.
+That's useful if you already manage engine packages elsewhere; otherwise
+always pick an engine extra.
 
 ## Configure
 
