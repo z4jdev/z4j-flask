@@ -1,6 +1,6 @@
 [project]
 name = "z4j-flask"
-version = "1.0.3"
+version = "1.0.4"
 description = "z4j Flask framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,8 +18,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "z4j-core>=1.0.4",
-    "z4j-bare>=1.0.6",
+    # Floors bumped for v1.0.4's buffer-path clamp (public
+    # helper in z4j-bare 1.0.7) + longpoll agent_id validator
+    # (z4j-core 1.0.5). Audit 2026-04-24 Low-2 / Medium-2.
+    "z4j-core>=1.0.5",
+    "z4j-bare>=1.0.7",
     "flask>=3.1.3",
 ]
 

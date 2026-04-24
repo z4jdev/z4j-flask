@@ -86,6 +86,9 @@ def _read_flask_config(app: Flask) -> dict[str, Any]:
     _flat_override(result, app.config, "Z4J_HMAC_SECRET", "hmac_secret")
     _flat_override(result, app.config, "Z4J_ENVIRONMENT", "environment")
     _flat_override(result, app.config, "Z4J_TRANSPORT", "transport")
+    # Long-poll agent UUID - required by Config when transport='longpoll'.
+    # Audit 2026-04-24 Medium-2.
+    _flat_override(result, app.config, "Z4J_AGENT_ID", "agent_id")
     _flat_override(result, app.config, "Z4J_LOG_LEVEL", "log_level")
     _flat_override(result, app.config, "Z4J_ENGINES", "engines")
     _flat_override(result, app.config, "Z4J_SCHEDULERS", "schedulers")
@@ -162,6 +165,9 @@ def _resolve(settings_dict: dict[str, Any]) -> dict[str, Any]:
     # Optional fields with env override
     _maybe_set(resolved, settings_dict, env, "environment", "Z4J_ENVIRONMENT")
     _maybe_set(resolved, settings_dict, env, "transport", "Z4J_TRANSPORT")
+    # Long-poll agent UUID - required by Config when transport='longpoll'.
+    # Audit 2026-04-24 Medium-2.
+    _maybe_set(resolved, settings_dict, env, "agent_id", "Z4J_AGENT_ID")
     _maybe_set(resolved, settings_dict, env, "log_level", "Z4J_LOG_LEVEL")
 
     if "engines" in settings_dict:
@@ -200,11 +206,20 @@ def _resolve(settings_dict: dict[str, Any]) -> dict[str, Any]:
         resolved, settings_dict, env, "max_payload_bytes", "Z4J_MAX_PAYLOAD_BYTES",
     )
 
-    # Path
+    # Path - clamped to the agent's allowed buffer roots
+    # (``~/.z4j`` / ``$TMPDIR/z4j-{uid}``). Audit 2026-04-24 Low-2.
+    from z4j_bare.storage import clamp_buffer_path
+
+    raw_buffer_path: Path | None = None
     if "buffer_path" in settings_dict:
-        resolved["buffer_path"] = Path(settings_dict["buffer_path"])
+        raw_buffer_path = Path(settings_dict["buffer_path"])
     elif "Z4J_BUFFER_PATH" in env:
-        resolved["buffer_path"] = Path(env["Z4J_BUFFER_PATH"])
+        raw_buffer_path = Path(env["Z4J_BUFFER_PATH"])
+    if raw_buffer_path is not None:
+        try:
+            resolved["buffer_path"] = clamp_buffer_path(raw_buffer_path)
+        except ValueError as exc:
+            raise ConfigError(str(exc)) from None
 
     # Redaction nested dict
     redaction = settings_dict.get("redaction") or {}
