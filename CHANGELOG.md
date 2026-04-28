@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-28
+
+### Changed
+
+- **v1.1.0 ecosystem family bump.** Pinned ``z4j-core>=1.1.0`` and ``z4j-bare>=1.1.0`` so a Flask host installed at 1.1.0 always resolves a known-good 1.1.0 slice of brain + agent. The driving fix lives in z4j-bare 1.1.0: the agent dispatcher now correctly routes ``schedule.fire`` to the queue engine's ``submit_task``, instead of rejecting every brain-side scheduler tick. Operators running brain 1.1.0 + scheduler 1.1.0 with z4j-flask 1.0.x had every scheduled task silently fail at the agent - this floor refuses that mixed install.
+
 ## [1.0.3] - 2026-04-24
 
 ### Added

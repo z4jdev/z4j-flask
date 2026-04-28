@@ -265,19 +265,37 @@ def _register_request_hooks(app: Flask) -> None:
 def _discover_engines(app: Flask) -> list[QueueEngineAdapter]:
     """Try to import every supported engine adapter and instantiate it.
 
-    v1 supports ``z4j_celery`` only. Failure to import an adapter
-    (because it is not installed) is silent.
+    v1.1.0 supports auto-discovery of ``z4j_celery`` (Celery),
+    ``z4j_rq`` (RQ), ``z4j_arq`` (arq), ``z4j_dramatiq``, ``z4j_huey``,
+    and ``z4j_taskiq``. Each adapter is wired through Flask config
+    keys (e.g. ``app.config["RQ_REDIS_URL"]`` or
+    ``app.config["TASKIQ_BROKER"]``). Failure to import an adapter
+    (because it is not installed) is silent. Failure to find the
+    handle in ``app.config`` is logged at WARNING for the engines
+    where it is needed.
+
+    Multiple engines may co-exist in one Flask process — e.g. a
+    legacy Celery codepath alongside a new RQ codepath.
     """
     engines: list[QueueEngineAdapter] = []
 
-    celery_engine = _try_import_celery_engine(app)
-    if celery_engine is not None:
-        engines.append(celery_engine)
+    for try_import in (
+        _try_import_celery_engine,
+        _try_import_rq_engine,
+        _try_import_arq_engine,
+        _try_import_dramatiq_engine,
+        _try_import_huey_engine,
+        _try_import_taskiq_engine,
+    ):
+        adapter = try_import(app)
+        if adapter is not None:
+            engines.append(adapter)
 
     if not engines:
         logger.warning(
             "z4j: no queue engine adapters installed; the agent will run but "
-            "will not capture any task events. pip install z4j-celery to fix.",
+            "will not capture any task events. pip install z4j-celery (or "
+            "z4j-rq / z4j-arq / z4j-dramatiq / z4j-huey / z4j-taskiq) to fix.",
         )
     return engines
 
@@ -335,6 +353,206 @@ def _resolve_celery_app(app: Flask) -> Any:
         return candidate
 
     return None
+
+
+def _try_import_rq_engine(app: Flask) -> Any:
+    """Best-effort import of :class:`RqEngineAdapter`.
+
+    Resolution order:
+
+    1. ``app.config["RQ_APP"]`` — pre-built rq_app object (or import path).
+    2. ``app.config["RQ_REDIS_URL"]`` — Redis URL; we wrap it in a
+       minimal duck-typed rq_app that satisfies the adapter's
+       interface.
+
+    Either gets the adapter wired up. If neither is set, RQ
+    discovery is skipped silently (operator may be running the
+    agent without RQ).
+    """
+    try:
+        from z4j_rq.engine import RqEngineAdapter
+    except ImportError:
+        return None
+
+    rq_app = _resolve_rq_app(app)
+    if rq_app is None:
+        return None
+    return RqEngineAdapter(rq_app=rq_app)
+
+
+def _resolve_rq_app(app: Flask) -> Any:
+    candidate = app.config.get("RQ_APP")
+    if candidate is not None:
+        if isinstance(candidate, str):
+            candidate = _resolve_import_path(candidate)
+        if candidate is not None:
+            return candidate
+
+    redis_url = app.config.get("RQ_REDIS_URL")
+    if redis_url:
+        return _build_minimal_rq_app(redis_url)
+
+    return None
+
+
+def _build_minimal_rq_app(redis_url: str) -> Any:
+    """Wrap a Redis URL in the duck-typed object RqEngineAdapter expects.
+
+    Mirrors :func:`z4j_rq.worker_bootstrap._build_rq_app` (which is
+    private). We re-implement here rather than import a private
+    helper so z4j-flask's surface stays self-contained. The shape
+    is documented in :class:`RqEngineAdapter`'s docstring.
+    """
+    try:
+        import redis
+        from rq import Queue
+        from rq.job import Job
+    except ImportError:
+        logger.warning(
+            "z4j: RQ_REDIS_URL set but `redis` / `rq` not installed",
+        )
+        return None
+
+    try:
+        connection = redis.Redis.from_url(redis_url)
+        connection.ping()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "z4j: cannot reach Redis at RQ_REDIS_URL=%s (%s)",
+            redis_url, str(exc)[:200],
+        )
+        return None
+
+    class _FlaskRqApp:
+        def __init__(self, conn: Any) -> None:
+            self.connection = conn
+
+        @property
+        def queues(self) -> list[Any]:
+            try:
+                return list(Queue.all(connection=self.connection))
+            except Exception:  # noqa: BLE001
+                return []
+
+        def queue_for(self, job: Any) -> Any:
+            return Queue(name=getattr(job, "origin", "default"),
+                         connection=self.connection)
+
+        def queue_for_name(self, name: str) -> Any:
+            return Queue(name=name, connection=self.connection)
+
+        def fetch_job(self, task_id: str) -> Any:
+            try:
+                return Job.fetch(task_id, connection=self.connection)
+            except Exception:  # noqa: BLE001
+                return None
+
+    return _FlaskRqApp(connection)
+
+
+def _try_import_arq_engine(app: Flask) -> Any:
+    """Best-effort import of :class:`ArqEngineAdapter`.
+
+    Reads ``app.config["ARQ_REDIS_SETTINGS"]`` (an arq pool /
+    RedisSettings, or an import path) and the optional
+    ``app.config["ARQ_FUNCTION_NAMES"]`` list. Without
+    ``ARQ_REDIS_SETTINGS`` we skip silently.
+    """
+    try:
+        from z4j_arq import ArqEngineAdapter
+    except ImportError:
+        return None
+
+    settings = app.config.get("ARQ_REDIS_SETTINGS")
+    if isinstance(settings, str):
+        settings = _resolve_import_path(settings)
+    if settings is None:
+        return None
+
+    function_names = app.config.get("ARQ_FUNCTION_NAMES", ())
+    queue_name = app.config.get("ARQ_QUEUE_NAME", "arq:queue")
+    return ArqEngineAdapter(
+        redis_settings=settings,
+        function_names=function_names,
+        queue_name=queue_name,
+    )
+
+
+def _try_import_dramatiq_engine(app: Flask) -> Any:
+    """Best-effort import of :class:`DramatiqEngineAdapter`.
+
+    Resolution:
+
+    1. ``app.config["DRAMATIQ_BROKER"]`` — explicit broker (or import path).
+    2. ``dramatiq.get_broker()`` — the process-global broker, IFF
+       at least one actor has been registered. Without the actor
+       check we'd pick up Dramatiq's default StubBroker (auto-
+       created on first import) in projects that never opted into
+       Dramatiq, polluting the agent's engine list.
+
+    If neither yields a configured broker we skip silently.
+    """
+    try:
+        from z4j_dramatiq.engine import DramatiqEngineAdapter
+    except ImportError:
+        return None
+
+    broker = app.config.get("DRAMATIQ_BROKER")
+    if isinstance(broker, str):
+        broker = _resolve_import_path(broker)
+    if broker is None:
+        try:
+            import dramatiq
+            candidate = dramatiq.get_broker()
+            # Only adopt the global broker if something has been
+            # registered against it. ``actors`` is the canonical
+            # registry on every Broker subclass.
+            actors = getattr(candidate, "actors", None) or {}
+            if actors:
+                broker = candidate
+        except Exception:  # noqa: BLE001
+            return None
+    if broker is None:
+        return None
+    return DramatiqEngineAdapter(broker=broker)
+
+
+def _try_import_huey_engine(app: Flask) -> Any:
+    """Best-effort import of :class:`HueyEngineAdapter`.
+
+    Reads ``app.config["HUEY"]`` (the Huey instance, or an import
+    path). Skips silently if not set.
+    """
+    try:
+        from z4j_huey import HueyEngineAdapter
+    except ImportError:
+        return None
+
+    huey = app.config.get("HUEY")
+    if isinstance(huey, str):
+        huey = _resolve_import_path(huey)
+    if huey is None:
+        return None
+    return HueyEngineAdapter(huey=huey)
+
+
+def _try_import_taskiq_engine(app: Flask) -> Any:
+    """Best-effort import of :class:`TaskiqEngineAdapter`.
+
+    Reads ``app.config["TASKIQ_BROKER"]`` (the taskiq broker, or an
+    import path). Skips silently if not set.
+    """
+    try:
+        from z4j_taskiq import TaskiqEngineAdapter
+    except ImportError:
+        return None
+
+    broker = app.config.get("TASKIQ_BROKER")
+    if isinstance(broker, str):
+        broker = _resolve_import_path(broker)
+    if broker is None:
+        return None
+    return TaskiqEngineAdapter(broker=broker)
 
 
 def _discover_schedulers(app: Flask) -> list[SchedulerAdapter]:

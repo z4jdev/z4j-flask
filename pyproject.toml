@@ -1,6 +1,6 @@
 [project]
 name = "z4j-flask"
-version = "1.0.4"
+version = "1.1.0"
 description = "z4j Flask framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,11 +18,14 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    # Floors bumped for v1.0.4's buffer-path clamp (public
-    # helper in z4j-bare 1.0.7) + longpoll agent_id validator
-    # (z4j-core 1.0.5). Audit 2026-04-24 Low-2 / Medium-2.
-    "z4j-core>=1.0.5",
-    "z4j-bare>=1.0.7",
+    # Floors bumped to >=1.1.0 for the v1.1.0 ecosystem family
+    # release. z4j-bare 1.1.0 fixes the schedule.fire dispatcher
+    # path so brain-side scheduler ticks reach the queue engine
+    # instead of failing at the agent. Operators on brain 1.1.0
+    # + scheduler 1.1.0 with z4j-flask 1.0.x had every scheduled
+    # task silently fail; this floor refuses that mixed install.
+    "z4j-core>=1.1.0",
+    "z4j-bare>=1.1.0",
     "flask>=3.1.3",
 ]
 
