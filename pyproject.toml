@@ -1,6 +1,6 @@
 [project]
 name = "z4j-flask"
-version = "1.1.2"
+version = "1.2.0"
 description = "z4j Flask framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,10 +24,10 @@ dependencies = [
     # instead of failing at the agent. Operators on brain 1.1.0
     # + scheduler 1.1.0 with z4j-flask 1.0.x had every scheduled
     # task silently fail; this floor refuses that mixed install.
-    "z4j-core>=1.1.0",
+    "z4j-core>=1.2.0",
     # 1.1.2 floor: z4j-bare 1.1.2 ships supervisor forever-retry
     # + pidfile/SIGHUP for ``z4j-flask restart``.
-    "z4j-bare>=1.1.2",
+    "z4j-bare>=1.2.0",
     "flask>=3.1.3",
 ]
 
