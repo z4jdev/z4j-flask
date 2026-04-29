@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-04-28
+
+### Added
+
+- **`z4j-flask` console script.** Both `z4j-flask <subcommand>`
+  (pip-installed entry point) and `python -m z4j_flask
+  <subcommand>` (module form) work and dispatch to the same code
+  path.
+- **`z4j-flask check`** - compact pass/fail health check.
+- **`z4j-flask status`** - one-line introspection of running z4j
+  agents on this host (PID + liveness via pidfile registry).
+- **`z4j-flask restart`** (alias `reload`) - sends SIGHUP to the
+  running Flask agent so it drops its connection and reconnects
+  immediately, skipping the supervisor's exponential backoff.
+
+### Changed
+
+- **Floor bumped to `z4j-bare>=1.1.2`** (was `>=1.1.0`). 1.1.2
+  fixes the supervisor trapdoor + ships the pidfile + SIGHUP
+  infrastructure that powers `z4j-flask restart`.
+
 ## [1.1.0] - 2026-04-28
 
 ### Changed
