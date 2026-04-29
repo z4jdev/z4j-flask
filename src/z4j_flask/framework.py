@@ -47,6 +47,10 @@ class FlaskFrameworkAdapter:
 
     name: str = "flask"
 
+    #: Worker-first protocol (1.2.0+) role hint. Flask agents run
+    #: in gunicorn / uwsgi / waitress; default role is "web".
+    default_worker_role: str = "web"
+
     def __init__(self, config: Config) -> None:
         self._config = config
         self._startup_hooks: list[Callable[[], None]] = []

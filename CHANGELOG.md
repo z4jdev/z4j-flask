@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-29
+
+### Added
+
+- **`FlaskFrameworkAdapter.default_worker_role = "web"`**.
+  Flask agents under gunicorn / uwsgi / waitress report as
+  role=`web` automatically.
+
+### Changed
+
+- Dependency floors: `z4j-core>=1.2.0`, `z4j-bare>=1.2.0`.
+
+
 ## [1.1.2] - 2026-04-28
 
 ### Added
