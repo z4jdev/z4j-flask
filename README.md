@@ -6,16 +6,49 @@
 
 The Flask framework adapter for [z4j](https://z4j.com).
 
-Adds the z4j agent into your Flask app via a one-line
-`Z4J(app)` initializer. Auto-discovers the engine adapter you
-have installed (Celery, RQ, Dramatiq, Huey, arq, TaskIQ) and
-streams every task lifecycle event to the brain.
+Adds the z4j agent into your Flask app via a one-line `Z4J(app)`
+initializer. Auto-discovers the engine adapter you have installed
+(Celery, RQ, Dramatiq, Huey, arq, TaskIQ) and streams every task
+lifecycle event to the brain. Operator control actions flow back
+the same channel.
+
+## What it ships
+
+- **One-line install** — `Z4J(app)` and the agent connects on the
+  next worker boot
+- **Engine auto-discovery** — picks up whichever z4j engine adapter
+  is installed alongside; cross-stack combos (Flask + RQ, Flask +
+  Celery) are first-class
+- **`@z4j_meta` decorator** — optional per-task annotations
+  (`priority="critical"`, `description="..."`) for dashboard
+  filtering and SLO display
+- **Service-user safe** — auto-relocates the local outbound buffer
+  to `$TMPDIR/z4j-{uid}` when `$HOME` is unwritable
 
 ## Install
 
 ```bash
 pip install z4j-flask z4j-celery z4j-celerybeat
 ```
+
+Wire it into your app:
+
+```python
+from flask import Flask
+from z4j_flask import Z4J
+
+app = Flask(__name__)
+Z4J(app)  # reads Z4J_AGENT_TOKEN, Z4J_BRAIN_URL, Z4J_PROJECT from env
+```
+
+Mint the agent token from the dashboard's Agents page.
+
+## Reliability
+
+- No exception from the agent ever propagates back into Flask request
+  handlers or your worker code.
+- Events buffer locally when the brain is unreachable; your application
+  never blocks on network I/O.
 
 ## Documentation
 
