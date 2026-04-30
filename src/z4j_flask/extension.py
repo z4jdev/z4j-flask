@@ -305,7 +305,7 @@ def _register_reconcile_cli(app: Flask) -> None:
         # Audit fix MED-cosmetic: use Click's idiomatic exit so
         # cleanup callbacks fire and the test runner doesn't see a
         # bare ``SystemExit``. Falls back to sys.exit if no Click
-        # context is active (defensive — should never happen here).
+        # context is active (defensive, should never happen here).
         ctx = click.get_current_context(silent=True)
 
         def _exit(code: int) -> None:
@@ -405,7 +405,7 @@ def _discover_engines(app: Flask) -> list[QueueEngineAdapter]:
     handle in ``app.config`` is logged at WARNING for the engines
     where it is needed.
 
-    Multiple engines may co-exist in one Flask process — e.g. a
+    Multiple engines may co-exist in one Flask process, e.g. a
     legacy Celery codepath alongside a new RQ codepath.
     """
     engines: list[QueueEngineAdapter] = []
@@ -491,8 +491,8 @@ def _try_import_rq_engine(app: Flask) -> Any:
 
     Resolution order:
 
-    1. ``app.config["RQ_APP"]`` — pre-built rq_app object (or import path).
-    2. ``app.config["RQ_REDIS_URL"]`` — Redis URL; we wrap it in a
+    1. ``app.config["RQ_APP"]``, pre-built rq_app object (or import path).
+    2. ``app.config["RQ_REDIS_URL"]``, Redis URL; we wrap it in a
        minimal duck-typed rq_app that satisfies the adapter's
        interface.
 
@@ -614,8 +614,8 @@ def _try_import_dramatiq_engine(app: Flask) -> Any:
 
     Resolution:
 
-    1. ``app.config["DRAMATIQ_BROKER"]`` — explicit broker (or import path).
-    2. ``dramatiq.get_broker()`` — the process-global broker, IFF
+    1. ``app.config["DRAMATIQ_BROKER"]``, explicit broker (or import path).
+    2. ``dramatiq.get_broker()``, the process-global broker, IFF
        at least one actor has been registered. Without the actor
        check we'd pick up Dramatiq's default StubBroker (auto-
        created on first import) in projects that never opted into
