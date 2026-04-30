@@ -117,7 +117,7 @@ class TestReadFlaskConfig:
         assert "/projects/myproj/schedules:import" in captured["url"]
         assert captured["auth"] == "Bearer my-key"
         # 1.2.2 audit fix HIGH (round 7): parity with django +
-        # fastapi tests — assert the source label on both the
+        # fastapi tests, assert the source label on both the
         # request body's `source_filter` and on each schedule's
         # `source` field. A future shim refactor that drops or
         # mutates `"declarative:flask"` would otherwise pass

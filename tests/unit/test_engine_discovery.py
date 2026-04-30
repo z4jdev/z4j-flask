@@ -7,7 +7,7 @@ each engine so a regression in the wiring layer is caught fast.
 
 The tests deliberately use the duck-typed objects each adapter
 accepts (FakeRq, real MemoryHuey, real InMemoryBroker) rather than
-mocks — this way we also catch any signature drift on the engine
+mocks, this way we also catch any signature drift on the engine
 adapters' constructors.
 """
 
@@ -30,7 +30,7 @@ from z4j_flask.extension import (
 
 
 # ---------------------------------------------------------------------------
-# Celery (regression — must still work with the new fan-out)
+# Celery (regression, must still work with the new fan-out)
 # ---------------------------------------------------------------------------
 
 

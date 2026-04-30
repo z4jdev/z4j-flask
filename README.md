@@ -14,15 +14,15 @@ the same channel.
 
 ## What it ships
 
-- **One-line install** — `Z4J(app)` and the agent connects on the
+- **One-line install**, `Z4J(app)` and the agent connects on the
   next worker boot
-- **Engine auto-discovery** — picks up whichever z4j engine adapter
+- **Engine auto-discovery**, picks up whichever z4j engine adapter
   is installed alongside; cross-stack combos (Flask + RQ, Flask +
   Celery) are first-class
-- **`@z4j_meta` decorator** — optional per-task annotations
+- **`@z4j_meta` decorator**, optional per-task annotations
   (`priority="critical"`, `description="..."`) for dashboard
   filtering and SLO display
-- **Service-user safe** — auto-relocates the local outbound buffer
+- **Service-user safe**, auto-relocates the local outbound buffer
   to `$TMPDIR/z4j-{uid}` when `$HOME` is unwritable
 
 ## Install
@@ -56,7 +56,7 @@ Full docs at [z4j.dev/frameworks/flask/](https://z4j.dev/frameworks/flask/).
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+Apache-2.0, see [LICENSE](LICENSE).
 
 ## Links
 
