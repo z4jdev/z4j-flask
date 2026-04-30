@@ -167,6 +167,12 @@ class Z4J:
         # shims for the existing runtime's redaction / audit paths).
         _register_request_hooks(app)
 
+        # Register the `flask z4j-reconcile` CLI command and (if the
+        # operator opts in) run the declarative reconciler now.
+        _register_reconcile_cli(app)
+        if app.config.get("Z4J_RECONCILE_AUTORUN", False):
+            _autorun_reconcile(app)
+
         if active is not runtime:
             logger.info(
                 "z4j: flask extension reused an existing runtime; "
@@ -255,6 +261,131 @@ def _register_request_hooks(app: Flask) -> None:
                 reset_current_request(token)
         except Exception:  # noqa: BLE001
             pass
+
+
+# ---------------------------------------------------------------------------
+# Declarative reconciler hooks
+# ---------------------------------------------------------------------------
+
+
+def _register_reconcile_cli(app: Flask) -> None:
+    """Register the ``flask z4j-reconcile`` CLI command on the app.
+
+    The command runs the same code path as
+    :func:`reconcile_from_flask_app` and prints a short summary
+    (or JSON if ``--json`` is set). Exit codes mirror the Django
+    management command:
+
+    - ``0`` - success (or no-op when nothing is configured)
+    - ``1`` - the brain rejected the import (HTTP/validation)
+    - ``2`` - missing required Flask config
+    """
+    import click
+
+    @app.cli.command("z4j-reconcile")
+    @click.option(
+        "--dry-run",
+        is_flag=True,
+        help="Preview the diff without writing audit rows.",
+    )
+    @click.option(
+        "--json",
+        "as_json",
+        is_flag=True,
+        help="Emit machine-readable JSON instead of text.",
+    )
+    def z4j_reconcile(dry_run: bool, as_json: bool) -> None:
+        """Reconcile Z4J_SCHEDULES (+ optional CELERY_BEAT_SCHEDULE)."""
+        import json
+
+        from flask import current_app
+
+        from z4j_flask.declarative import reconcile_from_flask_app
+
+        # Audit fix MED-cosmetic: use Click's idiomatic exit so
+        # cleanup callbacks fire and the test runner doesn't see a
+        # bare ``SystemExit``. Falls back to sys.exit if no Click
+        # context is active (defensive — should never happen here).
+        ctx = click.get_current_context(silent=True)
+
+        def _exit(code: int) -> None:
+            if ctx is not None:
+                ctx.exit(code)
+            else:
+                import sys
+                sys.exit(code)
+
+        result = reconcile_from_flask_app(current_app, dry_run=dry_run)
+
+        if result is None:
+            msg = (
+                "z4j-reconcile: no schedules configured. "
+                "Set Z4J_SCHEDULES or Z4J_RECONCILE_CELERY_BEAT=True."
+            )
+            if as_json:
+                click.echo(
+                    json.dumps({"ok": True, "skipped": True, "reason": msg}),
+                )
+            else:
+                click.echo(msg)
+            _exit(0)
+            return
+
+        if as_json:
+            click.echo(
+                json.dumps(
+                    {
+                        "ok": result.failed == 0,
+                        "dry_run": result.dry_run,
+                        "inserted": result.inserted,
+                        "updated": result.updated,
+                        "unchanged": result.unchanged,
+                        "failed": result.failed,
+                        "deleted": result.deleted,
+                        "errors": result.errors,
+                    },
+                ),
+            )
+        else:
+            mode = "DRY-RUN " if result.dry_run else ""
+            click.echo(f"z4j-reconcile {mode}summary:")
+            click.echo(f"  inserted:  {result.inserted}")
+            click.echo(f"  updated:   {result.updated}")
+            click.echo(f"  unchanged: {result.unchanged}")
+            click.echo(f"  deleted:   {result.deleted}")
+            if result.failed:
+                click.echo(f"  failed:    {result.failed}", err=True)
+                for idx, err in result.errors.items():
+                    click.echo(f"    [{idx}] {err}", err=True)
+            else:
+                click.echo("  failed:    0")
+
+        _exit(1 if result.failed else 0)
+
+
+def _autorun_reconcile(app: Flask) -> None:
+    """Call the reconciler once during ``init_app``.
+
+    Best-effort: failures are logged but never block app startup.
+    Operators who set ``Z4J_RECONCILE_AUTORUN=True`` accept that
+    every Flask process boot writes audit rows; reconcile-from-CI
+    is the recommended pattern for production.
+    """
+    from z4j_flask.declarative import reconcile_from_flask_app
+
+    try:
+        result = reconcile_from_flask_app(app)
+    except Exception:  # noqa: BLE001
+        logger.exception("z4j-flask: reconcile autorun failed")
+        return
+    if result is None:
+        return
+    logger.info(
+        "z4j-flask: reconcile autorun: inserted=%d updated=%d "
+        "unchanged=%d deleted=%d failed=%d",
+        result.inserted, result.updated, result.unchanged,
+        result.deleted, result.failed,
+    )
 
 
 # ---------------------------------------------------------------------------

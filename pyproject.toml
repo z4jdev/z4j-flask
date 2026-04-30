@@ -1,6 +1,6 @@
 [project]
 name = "z4j-flask"
-version = "1.2.0"
+version = "1.3.0"
 description = "z4j Flask framework adapter (Apache 2.0)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,30 +24,30 @@ dependencies = [
     # instead of failing at the agent. Operators on brain 1.1.0
     # + scheduler 1.1.0 with z4j-flask 1.0.x had every scheduled
     # task silently fail; this floor refuses that mixed install.
-    "z4j-core>=1.2.0",
+    "z4j-core>=1.3.0,<2",
     # 1.1.2 floor: z4j-bare 1.1.2 ships supervisor forever-retry
     # + pidfile/SIGHUP for ``z4j-flask restart``.
-    "z4j-bare>=1.2.0",
+    "z4j-bare>=1.3.0,<2",
     "flask>=3.1.3",
 ]
 
 [project.optional-dependencies]
 # Canonical engine bundles. `pip install z4j-flask[celery]` pulls
 # the engine adapter AND its companion scheduler in one shot.
-celery   = ["z4j-celery>=1.0.2",   "z4j-celerybeat>=1.0.2"]
-rq       = ["z4j-rq>=1.0.1",       "z4j-rqscheduler>=1.0.1"]
-dramatiq = ["z4j-dramatiq>=1.0.1", "z4j-apscheduler>=1.0.1"]
-huey     = ["z4j-huey>=1.0.1",     "z4j-hueyperiodic>=1.0.1"]
-arq      = ["z4j-arq>=1.0.1",      "z4j-arqcron>=1.0.1"]
-taskiq   = ["z4j-taskiq>=1.0.1",   "z4j-taskiqscheduler>=1.0.1"]
+celery   = ["z4j-celery>=1.3.0,<2",   "z4j-celerybeat>=1.3.0,<2"]
+rq       = ["z4j-rq>=1.3.0,<2",       "z4j-rqscheduler>=1.3.0,<2"]
+dramatiq = ["z4j-dramatiq>=1.3.0,<2", "z4j-apscheduler>=1.3.0,<2"]
+huey     = ["z4j-huey>=1.3.0,<2",     "z4j-hueyperiodic>=1.3.0,<2"]
+arq      = ["z4j-arq>=1.3.0,<2",      "z4j-arqcron>=1.3.0,<2"]
+taskiq   = ["z4j-taskiq>=1.3.0,<2",   "z4j-taskiqscheduler>=1.3.0,<2"]
 # Every engine in one shot.
 all = [
-    "z4j-celery>=1.0.2",   "z4j-celerybeat>=1.0.2",
-    "z4j-rq>=1.0.1",       "z4j-rqscheduler>=1.0.1",
-    "z4j-dramatiq>=1.0.1", "z4j-apscheduler>=1.0.1",
-    "z4j-huey>=1.0.1",     "z4j-hueyperiodic>=1.0.1",
-    "z4j-arq>=1.0.1",      "z4j-arqcron>=1.0.1",
-    "z4j-taskiq>=1.0.1",   "z4j-taskiqscheduler>=1.0.1",
+    "z4j-celery>=1.3.0,<2",   "z4j-celerybeat>=1.3.0,<2",
+    "z4j-rq>=1.3.0,<2",       "z4j-rqscheduler>=1.3.0,<2",
+    "z4j-dramatiq>=1.3.0,<2", "z4j-apscheduler>=1.3.0,<2",
+    "z4j-huey>=1.3.0,<2",     "z4j-hueyperiodic>=1.3.0,<2",
+    "z4j-arq>=1.3.0,<2",      "z4j-arqcron>=1.3.0,<2",
+    "z4j-taskiq>=1.3.0,<2",   "z4j-taskiqscheduler>=1.3.0,<2",
 ]
 
 [project.scripts]
