@@ -1,90 +1,61 @@
 # Changelog
 
-All notable changes to `z4j-flask` are documented in this file.
+All notable changes to this package are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-15
+
+**Initial release of the 1.3.x line.**
+
+z4j 1.3.0 is a clean-slate reset of the 1.x ecosystem. All prior
+1.x versions on PyPI (1.0.x, 1.1.x, 1.2.x) are yanked — they
+remain installable by exact pin but `pip install` no longer
+selects them. Operators upgrading from any prior 1.x deployment
+are expected to back up their database and run a fresh install
+against 1.3.x; there is no in-place migration path.
+
+### Why the reset
+
+The 1.0/1.1/1.2 line accumulated complexity organically across
+many small releases. By 1.2.2 the codebase carried defensive
+shims, deep audit-history annotations, and a 19-step alembic
+migration chain that made onboarding harder than it needed to
+be. 1.3.0 ships the same feature set as 1.2.2 but with:
+
+- One consolidated alembic migration containing the entire
+  schema, with explicit `compat` metadata declaring the version
+  window in which it can be applied.
+- HMAC canonical form starts at v1 (no v1→v4 fallback chain in
+  the verifier).
+- Defensive `getattr` shims removed for fields that exist in the
+  final model.
+- "Audit fix Round-N" annotations removed from the codebase.
+
+### Release discipline (new)
+
+PyPI publishes now require an explicit `Z4J_PUBLISH_AUTHORIZED=1`
+environment variable to be set in the publish-script invocation.
+The 1.0-1.2 wave shipped patches too quickly and had to yank/
+unyank versions; the new gate makes that mistake impossible.
+
+### Migrating from 1.x
+
+1. Back up your database (`z4j-brain backup --out backup.sql`).
+2. Bring the brain down.
+3. `pip install -U z4j` to pick up 1.3.0.
+4. `z4j-brain migrate upgrade head` runs the consolidated
+   migration; it detects an empty `alembic_version` table and
+   applies the single `v1_3_0_initial` revision.
+5. Bring the brain back up. The dashboard, audit log, and
+   schedule data structures are preserved across the migration
+   when the operator restores from the backup; if you started
+   fresh, you'll see an empty brain.
+
+### See also
+
+- `CHANGELOG-1.x-legacy.md` in this package's source tree for
+  the complete 1.0/1.1/1.2 release history.
+
 ## [Unreleased]
-
-## [1.2.0] - 2026-04-29
-
-### Added
-
-- **`FlaskFrameworkAdapter.default_worker_role = "web"`**.
-  Flask agents under gunicorn / uwsgi / waitress report as
-  role=`web` automatically.
-
-### Changed
-
-- Dependency floors: `z4j-core>=1.2.0`, `z4j-bare>=1.2.0`.
-
-
-## [1.1.2] - 2026-04-28
-
-### Added
-
-- **`z4j-flask` console script.** Both `z4j-flask <subcommand>`
-  (pip-installed entry point) and `python -m z4j_flask
-  <subcommand>` (module form) work and dispatch to the same code
-  path.
-- **`z4j-flask check`** - compact pass/fail health check.
-- **`z4j-flask status`** - one-line introspection of running z4j
-  agents on this host (PID + liveness via pidfile registry).
-- **`z4j-flask restart`** (alias `reload`) - sends SIGHUP to the
-  running Flask agent so it drops its connection and reconnects
-  immediately, skipping the supervisor's exponential backoff.
-
-### Changed
-
-- **Floor bumped to `z4j-bare>=1.1.2`** (was `>=1.1.0`). 1.1.2
-  fixes the supervisor trapdoor + ships the pidfile + SIGHUP
-  infrastructure that powers `z4j-flask restart`.
-
-## [1.1.0] - 2026-04-28
-
-### Changed
-
-- **v1.1.0 ecosystem family bump.** Pinned ``z4j-core>=1.1.0`` and ``z4j-bare>=1.1.0`` so a Flask host installed at 1.1.0 always resolves a known-good 1.1.0 slice of brain + agent. The driving fix lives in z4j-bare 1.1.0: the agent dispatcher now correctly routes ``schedule.fire`` to the queue engine's ``submit_task``, instead of rejecting every brain-side scheduler tick. Operators running brain 1.1.0 + scheduler 1.1.0 with z4j-flask 1.0.x had every scheduled task silently fail at the agent - this floor refuses that mixed install.
-
-## [1.0.3] - 2026-04-24
-
-### Added
-
-- **`python -m z4j_flask doctor`** - connectivity diagnostics from the same package operators already pip-installed. Wraps `z4j-bare`'s shared CLI doctor; reads `Z4J_*` env vars and runs the buffer-path / DNS / TCP / TLS / WebSocket probe ladder. Exits 0 on all-green, 1 on any failure. JSON output via `--json`.
-
-### Changed
-
-- Bumped minimum `z4j-core` to `>=1.0.4` and `z4j-bare` to `>=1.0.6`. Picks up the smart buffer-path fallback automatically: Flask deployments running under uwsgi/gunicorn with an unwritable `$HOME` (the `www-data` class of failure) now relocate the buffer to `$TMPDIR/z4j-{uid}/buffer-{pid}.sqlite` and log a single WARNING instead of crashing at startup.
-
-## [1.0.1] - 2026-04-21
-
-### Changed
-
-- Lowered minimum Python version from 3.13 to 3.11. This package now supports Python 3.11, 3.12, 3.13, and 3.14.
-- Documentation polish: standardized on ASCII hyphens across README, CHANGELOG, and docstrings for consistent rendering on PyPI.
-
-
-## [1.0.0] - 2026-04
-
-### Added
-
-<!--
-TODO: describe what ships in this first public release. One bullet per
-capability. Examples:
-- First public release.
-- <Headline feature>
-- <Second feature>
-- N unit tests.
--->
-
-- First public release.
-
-## Links
-
-- Repository: <https://github.com/z4jdev/z4j-flask>
-- Issues: <https://github.com/z4jdev/z4j-flask/issues>
-- PyPI: <https://pypi.org/project/z4j-flask/>
-
-[Unreleased]: https://github.com/z4jdev/z4j-flask/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/z4jdev/z4j-flask/releases/tag/v1.0.0
