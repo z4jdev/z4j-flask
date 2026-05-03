@@ -9,7 +9,7 @@ The Flask framework adapter for [z4j](https://z4j.com).
 Adds the z4j agent into your Flask app via a one-line `Z4J(app)`
 initializer. Auto-discovers the engine adapter you have installed
 (Celery, RQ, Dramatiq, Huey, arq, TaskIQ) and streams every task
-lifecycle event to the brain. Operator control actions flow back
+lifecycle event to z4j. Operator control actions flow back
 the same channel.
 
 ## What it ships
@@ -47,7 +47,7 @@ Mint the agent token from the dashboard's Agents page.
 
 - No exception from the agent ever propagates back into Flask request
   handlers or your worker code.
-- Events buffer locally when the brain is unreachable; your application
+- Events buffer locally when z4j is unreachable; your application
   never blocks on network I/O.
 
 ## Documentation
