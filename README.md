@@ -1,8 +1,8 @@
 # z4j-flask
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg)](https://pypi.org/project/z4j-flask/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg)](https://pypi.org/project/z4j-flask/)
-[![License](https://img.shields.io/pypi/l/z4j-flask.svg)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg?v=1.4.0)](https://pypi.org/project/z4j-flask/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg?v=1.4.0)](https://pypi.org/project/z4j-flask/)
+[![License](https://img.shields.io/pypi/l/z4j-flask.svg?v=1.4.0)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
 
 The Flask framework adapter for [z4j](https://z4j.com).
 
