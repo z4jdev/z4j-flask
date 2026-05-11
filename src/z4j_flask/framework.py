@@ -20,7 +20,7 @@ from z4j_core.models import Config, DiscoveryHints, RequestContext, User
 if TYPE_CHECKING:
     pass
 
-logger = logging.getLogger("z4j.agent.flask.framework")
+logger = logging.getLogger("z4j.host.flask.framework")
 
 # ContextVar for the current Flask request - set by before_request,
 # cleared by teardown_request in the extension. Flask's own

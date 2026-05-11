@@ -49,7 +49,7 @@ from z4j_bare.declarative import (
 if TYPE_CHECKING:
     from flask import Flask
 
-logger = logging.getLogger("z4j.agent.flask.reconcile")
+logger = logging.getLogger("z4j.host.flask.reconcile")
 
 
 def reconcile_from_flask_app(

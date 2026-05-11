@@ -52,7 +52,7 @@ if TYPE_CHECKING:
 
     from z4j_flask.framework import FlaskFrameworkAdapter
 
-logger = logging.getLogger("z4j.agent.flask.extension")
+logger = logging.getLogger("z4j.host.flask.extension")
 
 
 class Z4J:
@@ -302,7 +302,7 @@ def _register_reconcile_cli(app: Flask) -> None:
 
         from z4j_flask.declarative import reconcile_from_flask_app
 
-        # Audit fix MED-cosmetic: use Click's idiomatic exit so
+        # Use Click's idiomatic exit so
         # cleanup callbacks fire and the test runner doesn't see a
         # bare ``SystemExit``. Falls back to sys.exit if no Click
         # context is active (defensive, should never happen here).
