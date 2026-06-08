@@ -1,8 +1,8 @@
 # z4j-flask
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg?v=1.4.0)](https://pypi.org/project/z4j-flask/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg?v=1.4.0)](https://pypi.org/project/z4j-flask/)
-[![License](https://img.shields.io/pypi/l/z4j-flask.svg?v=1.4.0)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg?v=1.6.7)](https://pypi.org/project/z4j-flask/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg?v=1.6.7)](https://pypi.org/project/z4j-flask/)
+[![License](https://img.shields.io/pypi/l/z4j-flask.svg?v=1.6.7)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
 
 The Flask framework adapter for [z4j](https://z4j.com).
 
@@ -11,6 +11,15 @@ initializer. Auto-discovers the engine adapter you have installed
 (Celery, RQ, Dramatiq, Huey, arq, TaskIQ) and streams every task
 lifecycle event to z4j. Operator control actions flow back
 the same channel.
+
+## Compatibility
+
+- Flask 3.1.3+ (no upper cap)
+- Python 3.10+
+
+Pair with an engine adapter (`z4j-celery`, `z4j-rq`, `z4j-dramatiq`, `z4j-huey`, `z4j-arq`, `z4j-taskiq`); each engine adapter carries its own upstream floor.
+
+Full per-adapter matrix at <https://z4j.dev/reference/compatibility/>.
 
 ## What it ships
 
