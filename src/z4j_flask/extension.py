@@ -36,7 +36,6 @@ our observability tool.
 
 from __future__ import annotations
 
-import atexit
 import logging
 import os
 import threading
@@ -185,8 +184,14 @@ class Z4J:
             runtime.start()
             framework.fire_startup()
 
-        # Register atexit handler for clean shutdown.
-        atexit.register(self._shutdown)
+        # Register shutdown in the threading._register_atexit phase so
+        # the runtime drains before concurrent.futures tears down the
+        # default executor (avoids the heartbeat shutdown-race on
+        # short-lived processes; falls back to plain atexit if the
+        # private API is unavailable).
+        from z4j_bare.control import register_shutdown_atexit
+
+        register_shutdown_atexit(self._shutdown)
 
         logger.info("z4j: agent runtime started for flask")
 
