@@ -30,9 +30,7 @@ import os
 
 import pytest
 from flask import Flask
-
 from z4j_core.errors import ConfigError
-
 from z4j_flask.config import build_config_from_flask
 
 
@@ -78,7 +76,8 @@ class TestRequiredFieldsFailFast:
         assert any("project_id" in m for m in missing)
 
     def test_empty_flat_brain_url_does_not_use_env(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         # With env-takes-precedence semantics, the env var will
         # actually win here and the config WILL succeed. This
@@ -109,7 +108,8 @@ class TestPrecedenceEnvOverAppConfig:
     """
 
     def test_env_overrides_flat_key(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setenv("Z4J_BRAIN_URL", "http://env:7700")
         app = _app_with_flat(
@@ -121,7 +121,8 @@ class TestPrecedenceEnvOverAppConfig:
         assert "env:7700" in str(config.brain_url)
 
     def test_env_overrides_nested_dict(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setenv("Z4J_TOKEN", "env-token")
         app = _app_with_nested(
@@ -183,7 +184,8 @@ class TestTwoConfigLayouts:
 
 class TestOptionalFields:
     def test_hmac_secret_from_env(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setenv("Z4J_HMAC_SECRET", "env-hmac")
         app = _app_with_flat(

@@ -26,8 +26,9 @@ logger = logging.getLogger("z4j.host.flask.framework")
 # cleared by teardown_request in the extension. Flask's own
 # ``flask.request`` proxy is available during request handling, but
 # using a ContextVar gives us an explicit handle for the adapter.
-_current_request: ContextVar["Any | None"] = ContextVar(
-    "_z4j_flask_current_request", default=None,
+_current_request: ContextVar[Any | None] = ContextVar(
+    "_z4j_flask_current_request",
+    default=None,
 )
 
 
@@ -95,7 +96,7 @@ class FlaskFrameworkAdapter:
     def on_shutdown(self, hook: Callable[[], None]) -> None:
         self._shutdown_hooks.append(hook)
 
-    def register_admin_view(self, view: Any) -> None:  # noqa: ARG002
+    def register_admin_view(self, view: Any) -> None:
         # No admin UI embed for Flask in v1.
         return None
 
@@ -113,7 +114,7 @@ class FlaskFrameworkAdapter:
         for hook in self._startup_hooks:
             try:
                 hook()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception("z4j flask startup hook failed")
 
     def fire_shutdown(self) -> None:
@@ -125,7 +126,7 @@ class FlaskFrameworkAdapter:
         for hook in self._shutdown_hooks:
             try:
                 hook()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception("z4j flask shutdown hook failed")
 
 
@@ -163,7 +164,7 @@ def _current_request_context() -> RequestContext | None:
         tenant_id = _resolve_tenant_id(request)
         request_id = _resolve_request_id(request)
         trace_id = _resolve_trace_id(request)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.debug("z4j: failed to derive request context", exc_info=True)
         return None
 
@@ -193,7 +194,9 @@ def _current_user() -> User | None:
             return None
 
         user_id = getattr(fl_current_user, "id", None) or getattr(
-            fl_current_user, "pk", None,
+            fl_current_user,
+            "pk",
+            None,
         )
         email = getattr(fl_current_user, "email", None)
         display_name = (
@@ -210,7 +213,7 @@ def _current_user() -> User | None:
             email=str(email) if email else "unknown@unknown",
             display_name=str(display_name) if display_name else None,
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.debug("z4j: failed to resolve flask user", exc_info=True)
         return None
 
@@ -231,14 +234,16 @@ def _resolve_user_id() -> UUID | str | None:
         if not fl_current_user or getattr(fl_current_user, "is_anonymous", True):
             return None
         pk = getattr(fl_current_user, "id", None) or getattr(
-            fl_current_user, "pk", None,
+            fl_current_user,
+            "pk",
+            None,
         )
         if pk is None:
             return None
         if isinstance(pk, UUID):
             return pk
         return str(pk)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 

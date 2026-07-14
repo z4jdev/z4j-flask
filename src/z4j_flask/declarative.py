@@ -77,9 +77,7 @@ def reconcile_from_flask_app(
     z4j_schedules = app.config.get("Z4J_SCHEDULES") or {}
     reconcile_celery = app.config.get("Z4J_RECONCILE_CELERY_BEAT", False)
     celery_beat_schedules = (
-        app.config.get("CELERY_BEAT_SCHEDULE") or {}
-        if reconcile_celery
-        else None
+        app.config.get("CELERY_BEAT_SCHEDULE") or {} if reconcile_celery else None
     )
 
     if not z4j_schedules and not celery_beat_schedules:

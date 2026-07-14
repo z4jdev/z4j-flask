@@ -13,6 +13,7 @@ Lazy (application factory pattern)::
 
     z4j = Z4J()
 
+
     def create_app():
         app = Flask(__name__)
         z4j.init_app(app)
@@ -43,11 +44,9 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from flask import Flask
-
+    from z4j_bare.runtime import AgentRuntime
     from z4j_core.models import Config
     from z4j_core.protocols import QueueEngineAdapter, SchedulerAdapter
-
-    from z4j_bare.runtime import AgentRuntime
 
     from z4j_flask.framework import FlaskFrameworkAdapter
 
@@ -118,7 +117,7 @@ class Z4J:
 
             try:
                 self._do_init(app)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception(
                     "z4j: failed to start agent runtime; continuing without it",
                 )
@@ -158,6 +157,7 @@ class Z4J:
         # app also drives a Celery worker). The first one to register
         # wins; we drop our local copy if we lost the race.
         from z4j_bare._process_singleton import try_register
+
         active = try_register(runtime, owner="z4j_flask.extension")
         self._runtime = active
 
@@ -204,11 +204,11 @@ class Z4J:
         try:
             if framework is not None:
                 framework.fire_shutdown()
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("z4j: error during shutdown hooks")
         try:
             runtime.stop(timeout=5.0)
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("z4j: error during runtime shutdown")
         finally:
             self._runtime = None
@@ -248,23 +248,25 @@ def _register_request_hooks(app: Flask) -> None:
     @app.before_request
     def _z4j_before_request() -> None:
         from flask import request
+
         try:
             token = set_current_request(request._get_current_object())
             # Stash the token on the request's environ so teardown can
             # retrieve it. Using environ avoids adding attributes to
             # the request object itself.
             request.environ["_z4j_context_token"] = token
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110  best-effort request context
             pass
 
     @app.teardown_request
-    def _z4j_teardown_request(exc: BaseException | None) -> None:  # noqa: ARG001
+    def _z4j_teardown_request(exc: BaseException | None) -> None:
         from flask import request
+
         try:
             token = request.environ.pop("_z4j_context_token", None)
             if token is not None:
                 reset_current_request(token)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110  best-effort request context teardown
             pass
 
 
@@ -318,6 +320,7 @@ def _register_reconcile_cli(app: Flask) -> None:
                 ctx.exit(code)
             else:
                 import sys
+
                 sys.exit(code)
 
         result = reconcile_from_flask_app(current_app, dry_run=dry_run)
@@ -380,16 +383,18 @@ def _autorun_reconcile(app: Flask) -> None:
 
     try:
         result = reconcile_from_flask_app(app)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("z4j-flask: reconcile autorun failed")
         return
     if result is None:
         return
     logger.info(
-        "z4j-flask: reconcile autorun: inserted=%d updated=%d "
-        "unchanged=%d deleted=%d failed=%d",
-        result.inserted, result.updated, result.unchanged,
-        result.deleted, result.failed,
+        "z4j-flask: reconcile autorun: inserted=%d updated=%d unchanged=%d deleted=%d failed=%d",
+        result.inserted,
+        result.updated,
+        result.unchanged,
+        result.deleted,
+        result.failed,
     )
 
 
@@ -552,10 +557,11 @@ def _build_minimal_rq_app(redis_url: str) -> Any:
     try:
         connection = redis.Redis.from_url(redis_url)
         connection.ping()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning(
             "z4j: cannot reach Redis at RQ_REDIS_URL=%s (%s)",
-            redis_url, str(exc)[:200],
+            redis_url,
+            str(exc)[:200],
         )
         return None
 
@@ -567,12 +573,11 @@ def _build_minimal_rq_app(redis_url: str) -> Any:
         def queues(self) -> list[Any]:
             try:
                 return list(Queue.all(connection=self.connection))
-            except Exception:  # noqa: BLE001
+            except Exception:
                 return []
 
         def queue_for(self, job: Any) -> Any:
-            return Queue(name=getattr(job, "origin", "default"),
-                         connection=self.connection)
+            return Queue(name=getattr(job, "origin", "default"), connection=self.connection)
 
         def queue_for_name(self, name: str) -> Any:
             return Queue(name=name, connection=self.connection)
@@ -580,7 +585,7 @@ def _build_minimal_rq_app(redis_url: str) -> Any:
         def fetch_job(self, task_id: str) -> Any:
             try:
                 return Job.fetch(task_id, connection=self.connection)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 return None
 
     return _FlaskRqApp(connection)
@@ -639,6 +644,7 @@ def _try_import_dramatiq_engine(app: Flask) -> Any:
     if broker is None:
         try:
             import dramatiq
+
             candidate = dramatiq.get_broker()
             # Only adopt the global broker if something has been
             # registered against it. ``actors`` is the canonical
@@ -646,7 +652,7 @@ def _try_import_dramatiq_engine(app: Flask) -> Any:
             actors = getattr(candidate, "actors", None) or {}
             if actors:
                 broker = candidate
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
     if broker is None:
         return None
@@ -729,7 +735,7 @@ def _resolve_import_path(path: str) -> Any:
             return None
         module = importlib.import_module(module_path)
         return getattr(module, attr_name, None)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning(
             "z4j: failed to resolve CELERY_APP=%r: %s: %s",
             path,

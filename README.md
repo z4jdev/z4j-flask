@@ -1,8 +1,8 @@
 # z4j-flask
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg?v=1.6.9)](https://pypi.org/project/z4j-flask/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg?v=1.6.9)](https://pypi.org/project/z4j-flask/)
-[![License](https://img.shields.io/pypi/l/z4j-flask.svg?v=1.6.9)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg?v=1.7.0)](https://pypi.org/project/z4j-flask/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg?v=1.7.0)](https://pypi.org/project/z4j-flask/)
+[![License](https://img.shields.io/pypi/l/z4j-flask.svg?v=1.7.0)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
 
 The Flask framework adapter for [z4j](https://z4j.com).
 
@@ -15,7 +15,7 @@ the same channel.
 ## Compatibility
 
 - Flask 3.1.3+ (no upper cap)
-- Python 3.10+
+- Python 3.11+
 
 Pair with an engine adapter (`z4j-celery`, `z4j-rq`, `z4j-dramatiq`, `z4j-huey`, `z4j-arq`, `z4j-taskiq`); each engine adapter carries its own upstream floor.
 
@@ -47,7 +47,7 @@ from flask import Flask
 from z4j_flask import Z4J
 
 app = Flask(__name__)
-Z4J(app)  # reads Z4J_AGENT_TOKEN, Z4J_BRAIN_URL, Z4J_PROJECT from env
+Z4J(app)  # reads Z4J_TOKEN, Z4J_BRAIN_URL, Z4J_PROJECT_ID from env
 ```
 
 Mint the agent token from the dashboard's Agents page.

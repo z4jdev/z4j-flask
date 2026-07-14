@@ -20,14 +20,13 @@ import json
 import httpx
 import pytest
 from flask import Flask
-
 from z4j_flask.declarative import (
     ScheduleReconciler,
     reconcile_from_flask_app,
 )
 
 
-def _make_handler(captured: dict) -> "callable":
+def _make_handler(captured: dict) -> callable:
     """Build a httpx MockTransport handler that records the request."""
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -79,7 +78,8 @@ class TestReadFlaskConfig:
         assert reconcile_from_flask_app(app) is None
 
     def test_missing_brain_url_returns_none(
-        self, caplog: pytest.LogCaptureFixture,
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         app = Flask(__name__)
         app.config.update(
@@ -93,7 +93,8 @@ class TestReadFlaskConfig:
         assert any("missing" in r.message for r in caplog.records)
 
     def test_flat_keys_used(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         captured: dict = {}
         _patch_http(monkeypatch, _make_handler(captured))
@@ -126,7 +127,8 @@ class TestReadFlaskConfig:
         assert captured["body"]["schedules"][0]["source"] == "declarative:flask"
 
     def test_nested_z4j_dict_used(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         captured: dict = {}
         _patch_http(monkeypatch, _make_handler(captured))
@@ -152,7 +154,8 @@ class TestReadFlaskConfig:
         assert captured["auth"] == "Bearer nested-key"
 
     def test_flat_keys_override_nested(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         captured: dict = {}
         _patch_http(monkeypatch, _make_handler(captured))
@@ -181,7 +184,8 @@ class TestReadFlaskConfig:
         assert captured["auth"] == "Bearer flat-key"
 
     def test_celery_beat_only_via_flag(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         captured: dict = {}
         _patch_http(monkeypatch, _make_handler(captured))
@@ -215,7 +219,8 @@ class TestReadFlaskConfig:
         assert reconcile_from_flask_app(app) is None
 
     def test_dry_run_uses_diff(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         captured: dict = {}
 
@@ -255,7 +260,8 @@ class TestReadFlaskConfig:
 
 class TestReconcileCli:
     def test_command_registered_after_init(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         # Disable autostart so init_app doesn't try to talk to a real brain.
         monkeypatch.setenv("Z4J_DISABLED", "1")
@@ -277,7 +283,8 @@ class TestReconcileCli:
         # Z4J_DISABLED off to confirm the command lands.
 
     def test_cli_runs_reconcile(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         captured: dict = {}
         _patch_http(monkeypatch, _make_handler(captured))
@@ -318,7 +325,8 @@ class TestReconcileCli:
         assert "/projects/proj/schedules:import" in captured["url"]
 
     def test_cli_no_schedules_skips(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         from z4j_flask.extension import Z4J, _register_reconcile_cli
 
@@ -349,7 +357,9 @@ class TestReconcileCli:
 
 class TestAutorun:
     def test_autorun_calls_reconcile(
-        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         captured: dict = {}
         _patch_http(monkeypatch, _make_handler(captured))

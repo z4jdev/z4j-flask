@@ -21,6 +21,7 @@ Licensed under Apache License 2.0.
 
 from __future__ import annotations
 
+import contextlib
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
@@ -31,10 +32,8 @@ from z4j_flask.framework import FlaskFrameworkAdapter
 # See z4j_fastapi.__init__ for the rationale. Importing z4j_celery
 # (if installed) registers the worker_init signal so Flask apps
 # that run Celery workers get first-class agent registration.
-try:
-    import z4j_celery  # noqa: F401  (imported for its side-effects)
-except ImportError:
-    pass
+with contextlib.suppress(ImportError):
+    import z4j_celery
 
 # Report the installed wheel version (drift-proof - tracks the
 # pyproject version automatically). Falls back to the z4j-core
@@ -45,8 +44,8 @@ except PackageNotFoundError:
     from z4j_core.version import __version__  # type: ignore[no-redef]
 
 __all__ = [
-    "FlaskFrameworkAdapter",
     "Z4J",
+    "FlaskFrameworkAdapter",
     "__version__",
     "build_config_from_flask",
 ]

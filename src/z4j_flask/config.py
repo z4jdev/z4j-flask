@@ -22,7 +22,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from z4j_core.config import resolve_agent_config
-from z4j_core.errors import ConfigError
 from z4j_core.models import Config
 
 if TYPE_CHECKING:
