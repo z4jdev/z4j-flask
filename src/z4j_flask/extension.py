@@ -161,16 +161,11 @@ class Z4J:
         active = try_register(runtime, owner="z4j_flask.extension")
         self._runtime = active
 
-        # Register request context hooks (always - even if we lost
-        # the race, the Flask app still needs its request-context
-        # shims for the existing runtime's redaction / audit paths).
+        # Register request context hooks + CLI (always - even if we lost
+        # the race, the Flask app still needs its request-context shims
+        # and CLI commands for the existing runtime).
         _register_request_hooks(app)
-
-        # Register the `flask z4j-reconcile` CLI command and (if the
-        # operator opts in) run the declarative reconciler now.
         _register_reconcile_cli(app)
-        if app.config.get("Z4J_RECONCILE_AUTORUN", False):
-            _autorun_reconcile(app)
 
         if active is not runtime:
             logger.info(
@@ -179,19 +174,31 @@ class Z4J:
             )
             return
 
-        # Start the runtime if autostart is enabled.
-        if config.autostart:
-            runtime.start()
-            framework.fire_startup()
+        # We are the singleton WINNER. Wrap the ENTIRE remaining winner
+        # flow (declarative autorun, start, shutdown wiring) so ANY failure
+        # UNREGISTERS our OWN registration -- compare-and-clear via
+        # ``expected=runtime`` so a failing install can never erase a DIFFERENT
+        # runtime that legitimately replaced us, and no failed step ever strands a
+        # poisoned, never-started runtime in the singleton (the guard only
+        # covered start()). The reconciler now runs winner-only (it should run
+        # exactly once, not once per install path).
+        from z4j_bare._process_singleton import clear_runtime
 
-        # Register shutdown in the threading._register_atexit phase so
-        # the runtime drains before concurrent.futures tears down the
-        # default executor (avoids the heartbeat shutdown-race on
-        # short-lived processes; falls back to plain atexit if the
-        # private API is unavailable).
-        from z4j_bare.control import register_shutdown_atexit
+        try:
+            if app.config.get("Z4J_RECONCILE_AUTORUN", False):
+                _autorun_reconcile(app)
+            if config.autostart:
+                runtime.start()
+                framework.fire_startup()
+            # Register shutdown in the threading._register_atexit phase so the
+            # runtime drains before concurrent.futures tears down the default
+            # executor (falls back to plain atexit if the private API is absent).
+            from z4j_bare.control import register_shutdown_atexit
 
-        register_shutdown_atexit(self._shutdown)
+            register_shutdown_atexit(self._shutdown)
+        except BaseException:
+            clear_runtime(expected=runtime)
+            raise
 
         logger.info("z4j: agent runtime started for flask")
 
@@ -212,6 +219,12 @@ class Z4J:
             logger.exception("z4j: error during runtime shutdown")
         finally:
             self._runtime = None
+            # A clean shutdown must also UNREGISTER the process singleton
+            # (compare-and-clear on our own runtime) so a later re-install in the
+            # same process registers fresh instead of reusing the stopped one.
+            from z4j_bare._process_singleton import clear_runtime
+
+            clear_runtime(expected=runtime)
 
     @property
     def runtime(self) -> AgentRuntime | None:
@@ -558,10 +571,25 @@ def _build_minimal_rq_app(redis_url: str) -> Any:
         connection = redis.Redis.from_url(redis_url)
         connection.ping()
     except Exception as exc:
+        # A modern redis-py against a pre-6.0 server fails with an opaque
+        # "unknown command `HELLO`" (RESP3 negotiation). rq fails the same way
+        # on that pairing, so name the fix rather than retrying with
+        # protocol=2, which would report health while the queue is dead.
+        # Same text as z4j_rq._redis_protocol_hint; re-implemented rather than
+        # imported for the reason given in this function's docstring.
+        hint = (
+            ""
+            if "HELLO" not in str(exc)
+            else (
+                ". Your Redis server predates 6.0 but redis-py is 6.0+, "
+                'which negotiates RESP3. Pin the client: pip install "redis<6"'
+            )
+        )
         logger.warning(
-            "z4j: cannot reach Redis at RQ_REDIS_URL=%s (%s)",
+            "z4j: cannot reach Redis at RQ_REDIS_URL=%s (%s)%s",
             redis_url,
             str(exc)[:200],
+            hint,
         )
         return None
 
