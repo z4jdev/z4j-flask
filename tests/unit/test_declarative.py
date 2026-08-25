@@ -259,28 +259,57 @@ class TestReadFlaskConfig:
 
 
 class TestReconcileCli:
-    def test_command_registered_after_init(
+    def test_disabled_init_registers_extension_without_command(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        # Disable autostart so init_app doesn't try to talk to a real brain.
         monkeypatch.setenv("Z4J_DISABLED", "1")
 
         from z4j_flask.extension import Z4J
 
         app = Flask(__name__)
-        app.config.update(
-            Z4J_BRAIN_URL="http://b",
-            Z4J_TOKEN="k",
-            Z4J_PROJECT_ID="proj",
+        extension = Z4J(app)
+
+        assert app.extensions["z4j"] is extension
+        assert "z4j-reconcile" not in app.cli.commands
+
+    def test_command_registered_after_init(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from z4j_bare import _process_singleton, control, runtime
+        from z4j_flask import extension as extension_module
+        from z4j_flask.extension import Z4J
+
+        class FakeRuntime:
+            def __init__(self, **kwargs) -> None:
+                self.kwargs = kwargs
+
+        monkeypatch.setattr(runtime, "AgentRuntime", FakeRuntime)
+        monkeypatch.setattr(
+            _process_singleton,
+            "try_register",
+            lambda candidate, *, owner: candidate,
         )
-        # init_app should still register the CLI even when the runtime
-        # is disabled - the operator may want to reconcile from CLI in
-        # a process that doesn't run the agent.
-        Z4J(app)
-        # Z4J_DISABLED skips _do_init entirely so the CLI is NOT
-        # registered; that's the documented contract. Re-run with
-        # Z4J_DISABLED off to confirm the command lands.
+        monkeypatch.setattr(control, "register_shutdown_atexit", lambda callback: None)
+        monkeypatch.setattr(extension_module, "_discover_engines", lambda app: [])
+        monkeypatch.setattr(extension_module, "_discover_schedulers", lambda app: [])
+
+        app = Flask(__name__)
+        app.config.update(
+            Z4J_BRAIN_URL="http://brain.example.test",
+            Z4J_TOKEN="test-token-12345678901234567890",
+            Z4J_PROJECT_ID="proj",
+            Z4J_HMAC_SECRET="h" * 64,
+            Z4J_AUTOSTART=False,
+            Z4J_DEV_MODE=True,
+        )
+
+        extension = Z4J(app)
+
+        assert app.extensions["z4j"] is extension
+        assert isinstance(extension.runtime, FakeRuntime)
+        assert "z4j-reconcile" in app.cli.commands
 
     def test_cli_runs_reconcile(
         self,

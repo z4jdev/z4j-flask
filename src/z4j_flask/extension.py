@@ -42,6 +42,8 @@ import os
 import threading
 from typing import TYPE_CHECKING, Any
 
+from z4j_core.redaction import redact_url_password
+
 if TYPE_CHECKING:
     from flask import Flask
     from z4j_bare.runtime import AgentRuntime
@@ -190,9 +192,9 @@ class Z4J:
             if config.autostart:
                 runtime.start()
                 framework.fire_startup()
-            # Register shutdown in the threading._register_atexit phase so the
-            # runtime drains before concurrent.futures tears down the default
-            # executor (falls back to plain atexit if the private API is absent).
+            # Register shutdown before concurrent.futures tears down the
+            # default executor so runtime teardown can finish cleanly. Fall
+            # back to plain atexit if the private API is absent.
             from z4j_bare.control import register_shutdown_atexit
 
             register_shutdown_atexit(self._shutdown)
@@ -203,7 +205,7 @@ class Z4J:
         logger.info("z4j: agent runtime started for flask")
 
     def _shutdown(self) -> None:
-        """Atexit handler that flushes the buffer and stops the runtime."""
+        """Stop the runtime; unsent entries remain durable for the next start."""
         runtime = self._runtime
         framework = self._framework
         if runtime is None:
@@ -230,7 +232,7 @@ class Z4J:
     def runtime(self) -> AgentRuntime | None:
         """Return the running agent runtime, if any.
 
-        Useful for tests and manual buffer flushing.
+        Useful for tests and runtime-state inspection.
         """
         return self._runtime
 
@@ -585,10 +587,12 @@ def _build_minimal_rq_app(redis_url: str) -> Any:
                 'which negotiates RESP3. Pin the client: pip install "redis<6"'
             )
         )
+        # Inside the user's Flask app, so this line lands in THEIR logs. Both
+        # the URL and the driver's message carry the password.
         logger.warning(
             "z4j: cannot reach Redis at RQ_REDIS_URL=%s (%s)%s",
-            redis_url,
-            str(exc)[:200],
+            redact_url_password(redis_url),
+            redact_url_password(str(exc))[:200],
             hint,
         )
         return None
@@ -713,7 +717,7 @@ def _try_import_taskiq_engine(app: Flask) -> Any:
     import path). Skips silently if not set.
     """
     try:
-        from z4j_taskiq import TaskiqEngineAdapter
+        from z4j_taskiq import TaskiqEngineAdapter, attach_to_broker
     except ImportError:
         return None
 
@@ -722,7 +726,19 @@ def _try_import_taskiq_engine(app: Flask) -> Any:
         broker = _resolve_import_path(broker)
     if broker is None:
         return None
-    return TaskiqEngineAdapter(broker=broker)
+    # Flask discovery is synchronous and may run on a transient or unrelated
+    # loop. Leave ownership unbound here; Taskiq middleware startup captures
+    # the broker's actual live owner loop.
+    adapter = TaskiqEngineAdapter(broker=broker)
+    try:
+        attach_to_broker(broker, adapter=adapter)
+    except RuntimeError as exc:
+        logger.warning(
+            "z4j: taskiq broker attachment failed (%s); skipping adapter",
+            type(exc).__name__,
+        )
+        return None
+    return adapter
 
 
 def _discover_schedulers(app: Flask) -> list[SchedulerAdapter]:

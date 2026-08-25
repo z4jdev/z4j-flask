@@ -13,6 +13,7 @@ adapters' constructors.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, ClassVar
 
 import pytest
@@ -192,6 +193,7 @@ class TestTaskiqDiscovery:
         pytest.importorskip("z4j_taskiq")
         pytest.importorskip("taskiq")
         from taskiq import InMemoryBroker
+        from z4j_taskiq import Z4JTaskiqMiddleware, attach_to_broker
 
         app = Flask(__name__)
         b = InMemoryBroker()
@@ -200,6 +202,46 @@ class TestTaskiqDiscovery:
         adapter = _try_import_taskiq_engine(app)
         assert adapter is not None
         assert adapter.broker is b
+        assert adapter._broker_loop is None
+        middleware = next(item for item in b.middlewares if isinstance(item, Z4JTaskiqMiddleware))
+        assert attach_to_broker(b, adapter=adapter) is middleware
+        assert b.middlewares.count(middleware) == 1
+
+    @pytest.mark.asyncio
+    async def test_discovery_defers_loop_binding_until_taskiq_startup(self) -> None:
+        pytest.importorskip("z4j_taskiq")
+        pytest.importorskip("taskiq")
+        from taskiq import InMemoryBroker
+        from z4j_taskiq import Z4JTaskiqMiddleware
+
+        app = Flask(__name__)
+        broker = InMemoryBroker()
+        app.config["TASKIQ_BROKER"] = broker
+
+        adapter = _try_import_taskiq_engine(app)
+
+        assert adapter is not None
+        assert adapter._broker_loop is None
+        middleware = next(
+            item for item in broker.middlewares if isinstance(item, Z4JTaskiqMiddleware)
+        )
+        await middleware.startup()
+        assert adapter._broker_loop is asyncio.get_running_loop()
+
+    def test_conflicting_existing_middleware_skips_adapter(self) -> None:
+        pytest.importorskip("z4j_taskiq")
+        pytest.importorskip("taskiq")
+        from taskiq import InMemoryBroker
+        from z4j_taskiq import TaskiqEngineAdapter, attach_to_broker
+
+        app = Flask(__name__)
+        broker = InMemoryBroker()
+        app.config["TASKIQ_BROKER"] = broker
+        existing = TaskiqEngineAdapter(broker=broker)
+        middleware = attach_to_broker(broker, adapter=existing)
+
+        assert _try_import_taskiq_engine(app) is None
+        assert broker.middlewares == [middleware]
 
 
 # ---------------------------------------------------------------------------

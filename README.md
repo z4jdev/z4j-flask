@@ -1,16 +1,16 @@
 # z4j-flask
 
-[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg?v=1.8.0)](https://pypi.org/project/z4j-flask/)
-[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg?v=1.8.0)](https://pypi.org/project/z4j-flask/)
-[![License](https://img.shields.io/pypi/l/z4j-flask.svg?v=1.8.0)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/z4j-flask.svg)](https://pypi.org/project/z4j-flask/)
+[![Python](https://img.shields.io/pypi/pyversions/z4j-flask.svg)](https://pypi.org/project/z4j-flask/)
+[![License](https://img.shields.io/pypi/l/z4j-flask.svg)](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE)
 
 The Flask framework adapter for [z4j](https://z4j.com).
 
 Adds the z4j agent into your Flask app via a one-line `Z4J(app)`
-initializer. Auto-discovers the engine adapter you have installed
-(Celery, RQ, Dramatiq, Huey, arq, TaskIQ) and streams every task
-lifecycle event to z4j. Operator control actions flow back
-the same channel.
+initializer. It registers installed engine adapters only when their required
+native handles are configured on the Flask app (`CELERY_APP`, `RQ_APP` or
+`RQ_REDIS_URL`, `ARQ_REDIS_SETTINGS`, `HUEY`, or `TASKIQ_BROKER`). Dramatiq can
+instead use a process-global broker that already has registered actors.
 
 ## Compatibility
 
@@ -25,12 +25,13 @@ Full per-adapter matrix at <https://z4j.dev/reference/compatibility/>.
 
 - **One-line install**, `Z4J(app)` and the agent connects on the
   next worker boot
-- **Engine auto-discovery**, picks up whichever z4j engine adapter
-  is installed alongside; cross-stack combos (Flask + RQ, Flask +
-  Celery) are first-class
-- **`@z4j_meta` decorator**, optional per-task annotations
-  (`priority="critical"`, `description="..."`) for dashboard
-  filtering and SLO display
+- **Configured engine discovery**, supports multiple installed adapters when
+  each adapter's required native handle is present in Flask config
+- **TaskIQ middleware discovery**, `TASKIQ_BROKER` attaches z4j capture without
+  guessing an event loop; TaskIQ broker startup binds its actual owner loop
+- **Per-task metadata from supporting engine adapters**; `z4j-celery`,
+  `z4j-rq`, and `z4j-dramatiq` expose `@z4j_meta` rather than this framework
+  package defining one
 - **Service-user safe**, auto-relocates the local outbound buffer
   to `$TMPDIR/z4j-{uid}` when `$HOME` is unwritable
 
@@ -44,20 +45,30 @@ Wire it into your app:
 
 ```python
 from flask import Flask
+from myproject.celery import app as celery_app
 from z4j_flask import Z4J
 
 app = Flask(__name__)
-Z4J(app)  # reads Z4J_TOKEN, Z4J_BRAIN_URL, Z4J_PROJECT_ID from env
+app.config["CELERY_APP"] = celery_app
+Z4J(app)  # reads Z4J_TOKEN, Z4J_HMAC_SECRET, Z4J_BRAIN_URL, Z4J_PROJECT_ID
 ```
 
-Mint the agent token from the dashboard's Agents page.
+Mint the agent from the dashboard's Agents page and retain both values it shows:
+the bearer token and the HMAC secret.
+
+For `TASKIQ_BROKER`, initialize `Z4J(app)` before the component that starts the
+broker. Flask discovery attaches the middleware, and TaskIQ's real broker
+startup binds its owner loop. A separate TaskIQ worker process still needs its
+own agent and must attach before the TaskIQ CLI starts the broker.
 
 ## Reliability
 
-- No exception from the agent ever propagates back into Flask request
-  handlers or your worker code.
-- Events buffer locally when z4j is unreachable; your application
-  never blocks on network I/O.
+- Agent startup and delivery failures are logged and isolated from Flask
+  request handlers and worker code; capture hooks make no brain network request
+  inline.
+- Engine event queues and the SQLite outbound buffer are bounded. Queue
+  overflow drops new events and buffer pressure evicts oldest rows; both losses
+  are logged.
 
 ## Documentation
 

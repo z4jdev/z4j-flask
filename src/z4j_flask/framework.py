@@ -107,9 +107,10 @@ class FlaskFrameworkAdapter:
     def fire_startup(self) -> None:
         """Invoke every registered startup hook in order.
 
-        Called once after the agent runtime has connected. Exceptions
-        from individual hooks are caught and logged so a single bad
-        hook does not abort the others.
+        Called after ``AgentRuntime.start()`` reaches local steady state.
+        The WebSocket may still be connecting in the background. Exceptions
+        from individual hooks are caught and logged so a single bad hook does
+        not abort the others.
         """
         for hook in self._startup_hooks:
             try:
