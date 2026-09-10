@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.11.0 (2026-09-10)
+
+* Broaden the Flask requirement from `flask>=3.1.3` to `flask>=2.3.3`, with no
+  upper cap. Removing the 3.1.3 minimum is deliberate: Flask 3.1.3 fixes
+  Flask's session-cache advisory (GHSA-68rp-wp8r-4726), but the extension uses
+  framework lifecycle and request hooks, not Flask session authentication, so
+  its range now states API compatibility rather than an upstream patch policy.
+  Installing or upgrading z4j-flask no longer forces a Flask upgrade, and no
+  longer refuses a Flask release that advisory affects. Whether the host
+  application needs the fix is the operator's decision; keep production hosts
+  on a supported, patched Flask release. See
+  https://z4j.dev/reference/compatibility/.
+* Align runtime version metadata and sibling dependency floors with the coordinated 1.11.0 release.
+
 ## 1.10.0 (2026-08-28)
 
 * Carried with the coordinated fleet release. No behaviour changed.

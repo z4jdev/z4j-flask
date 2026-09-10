@@ -14,8 +14,10 @@ instead use a process-global broker that already has registered actors.
 
 ## Compatibility
 
-- Flask 3.1.3+ (no upper cap)
+- Flask 2.3.3+ (no upper cap)
 - Python 3.11+
+
+The range describes integration API compatibility. Flask 3.1.3 or a newer security-patched release is recommended for production; installing the adapter does not certify the host application's dependency security or force its feature-version upgrade.
 
 Pair with an engine adapter (`z4j-celery`, `z4j-rq`, `z4j-dramatiq`, `z4j-huey`, `z4j-arq`, `z4j-taskiq`); each engine adapter carries its own upstream floor.
 
