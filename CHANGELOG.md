@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.0 (2026-10-03)
+
+* Carried with the coordinated fleet release. No behaviour changed.
+
 ## 1.11.0 (2026-09-10)
 
 * Broaden the Flask requirement from `flask>=3.1.3` to `flask>=2.3.3`, with no

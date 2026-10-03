@@ -21,7 +21,7 @@ The range describes integration API compatibility. Flask 3.1.3 or a newer securi
 
 Pair with an engine adapter (`z4j-celery`, `z4j-rq`, `z4j-dramatiq`, `z4j-huey`, `z4j-arq`, `z4j-taskiq`); each engine adapter carries its own upstream floor.
 
-Full per-adapter matrix at <https://z4j.dev/reference/compatibility/>.
+Full per-adapter matrix at <https://docs.z4j.com/reference/compatibility/>.
 
 ## What it ships
 
@@ -74,7 +74,7 @@ own agent and must attach before the TaskIQ CLI starts the broker.
 
 ## Documentation
 
-Full docs at [z4j.dev/frameworks/flask/](https://z4j.dev/frameworks/flask/).
+Full docs at [docs.z4j.com/frameworks/flask/](https://docs.z4j.com/frameworks/flask/).
 
 ## License
 
@@ -83,7 +83,7 @@ Apache-2.0, see [LICENSE](LICENSE).
 ## Links
 
 - Homepage: https://z4j.com
-- Documentation: https://z4j.dev
+- Documentation: https://docs.z4j.com
 - PyPI: https://pypi.org/project/z4j-flask/
 - Issues: https://github.com/z4jdev/z4j-flask/issues
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
