@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.13.0 (2026-10-19)
+
+- Align package version and sibling dependency floors with the coordinated 1.13.0 release. No additional adapter behavior changes in this wave.
+
 ## 1.12.0 (2026-10-03)
 
 * Carried with the coordinated fleet release. No behaviour changed.

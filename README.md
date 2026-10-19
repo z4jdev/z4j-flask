@@ -63,14 +63,19 @@ broker. Flask discovery attaches the middleware, and TaskIQ's real broker
 startup binds its owner loop. A separate TaskIQ worker process still needs its
 own agent and must attach before the TaskIQ CLI starts the broker.
 
+## Scope and worker processes
+
+This package connects the web process and its configured queue handles. Task execution still happens in the queue's worker process, which needs its own engine adapter and agent configuration. It does not provide HTTP request tracing or automatically capture arbitrary threads started by Flask handlers. Use a supported queue engine for the task lifecycle and controls shown in z4j.
+
 ## Reliability
 
 - Agent startup and delivery failures are logged and isolated from Flask
   request handlers and worker code; capture hooks make no brain network request
   inline.
-- Engine event queues and the SQLite outbound buffer are bounded. Queue
-  overflow drops new events and buffer pressure evicts oldest rows; both losses
-  are logged.
+- Engine event queues and the SQLite outbound buffer are bounded. A full
+  engine queue loses an event (the Celery, RQ and Dramatiq adapters evict the
+  oldest queued event; the Huey, arq and TaskIQ adapters drop the new one) and
+  buffer pressure evicts oldest rows; both losses are logged.
 
 ## Documentation
 
@@ -78,7 +83,7 @@ Full docs at [docs.z4j.com/frameworks/flask/](https://docs.z4j.com/frameworks/fl
 
 ## License
 
-Apache-2.0, see [LICENSE](LICENSE).
+Apache-2.0, see [LICENSE](https://github.com/z4jdev/z4j-flask/blob/main/LICENSE).
 
 ## Links
 
@@ -86,5 +91,5 @@ Apache-2.0, see [LICENSE](LICENSE).
 - Documentation: https://docs.z4j.com
 - PyPI: https://pypi.org/project/z4j-flask/
 - Issues: https://github.com/z4jdev/z4j-flask/issues
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Security: security@z4j.com (see [SECURITY.md](SECURITY.md))
+- Changelog: [CHANGELOG.md](https://github.com/z4jdev/z4j-flask/blob/main/CHANGELOG.md)
+- Security: security@z4j.com (see [SECURITY.md](https://github.com/z4jdev/z4j-flask/blob/main/SECURITY.md))
